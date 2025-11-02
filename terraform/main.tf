@@ -58,7 +58,7 @@ module "tokyo" {
   db_password            = var.db_password
   instance_type          = var.instance_type
   rds_instance_class     = var.rds_instance_class
-  primary_rds_identifier = module.seoul.rds_identifier
+  primary_rds_arn = module.seoul.rds_arn
 }
 
 # Route 53 configuration (shared)

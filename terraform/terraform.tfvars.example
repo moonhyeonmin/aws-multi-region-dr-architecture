@@ -2,7 +2,8 @@
 
 db_name     = "testdb"
 db_username = "admin"
-db_password = "test123"
+# RDS requires password to be at least 8 characters long
+db_password = "YourSecurePassword123!"  # Change this! Must be at least 8 characters
 
 domain_name = "dr-test.local"
 

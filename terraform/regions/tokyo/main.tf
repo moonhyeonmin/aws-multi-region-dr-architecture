@@ -94,7 +94,7 @@ module "rds" {
   subnet_ids                 = module.vpc.private_subnet_ids
   allowed_security_group_ids = [module.ec2.web_security_group_id]
   is_replica                  = true
-  replicate_source_db         = var.primary_rds_identifier
+  replicate_source_db         = var.primary_rds_arn
   instance_class              = var.rds_instance_class
   publicly_accessible         = var.rds_publicly_accessible
   # Read Replica는 Primary의 자격 증명을 상속받으므로 db_username과 db_password 불필요

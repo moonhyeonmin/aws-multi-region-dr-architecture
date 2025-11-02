@@ -34,8 +34,8 @@ variable "rds_publicly_accessible" {
   default     = true
 }
 
-variable "primary_rds_identifier" {
-  description = "Primary RDS identifier for cross-region replica"
+variable "primary_rds_arn" {
+  description = "Primary RDS ARN for cross-region replica"
   type        = string
 }
 
