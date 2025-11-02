@@ -1,0 +1,27 @@
+{
+  "test_timestamp": "2025-11-02T22:11:28+09:00",
+  "environment": {
+    "primary_region": "ap-northeast-2",
+    "dr_region": "ap-northeast-1",
+    "primary_ec2_ip": "43.202.57.98",
+    "secondary_ec2_ip": "52.192.12.7"
+  },
+  "metrics": {
+    "primary_health_response_ms": 789,
+    "secondary_health_response_ms": 781,
+    "replication_lag_ms": "3680",
+    "rds_replication_lag_seconds": "0",
+    "rds_io_running": "Yes",
+    "rds_sql_running": "Yes",
+    "dns_query_time_ms": "65",
+    "api_response_time_ms": 744
+  },
+  "estimated_rto": {
+    "test_environment": "2-3 minutes",
+    "production_estimate": "5-10 minutes"
+  },
+  "estimated_rpo": {
+    "test_environment": "0 seconds",
+    "production_estimate": "10-30 seconds"
+  }
+}

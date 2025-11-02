@@ -1,0 +1,59 @@
+========================================
+AWS Multi-Region DR 테스트 리포트
+생성 시간: 2025-11-02 22:11:28
+========================================
+
+[테스트 환경 구성]
+- Primary 리전: Seoul (ap-northeast-2)
+- DR 리전: Tokyo (ap-northeast-1)
+- Primary EC2 IP: 43.202.57.98
+- Secondary EC2 IP: 52.192.12.7
+- Primary RDS: seoul-primary-mysql.cncq4ig28r4m.ap-northeast-2.rds.amazonaws.com:3306
+- Secondary RDS: tokyo-dr-mysql-replica.cpmccscmiwi3.ap-northeast-1.rds.amazonaws.com:3306
+
+[성능 메트릭]
+
+1. Health Check 응답 시간
+   - Primary: 789ms
+   - Secondary: 781ms
+
+2. 데이터 복제 지연 시간
+   - 복제 완료 시간: 3680ms
+   - RDS 복제 지연: 0초
+   - IO Thread: Yes
+   - SQL Thread: Yes
+
+3. DNS 성능
+   - DNS 쿼리 시간: 65ms
+   - 현재 타겟: 
+
+4. API 성능
+   - API 응답 시간: 744ms
+
+[예상 RTO/RPO]
+
+RTO (Recovery Time Objective):
+- 테스트 환경: 약 2-3분 (Route 53 Health Check + DNS TTL)
+- 예상 프로덕션: 5-10분 (추가 검증 및 모니터링 고려)
+
+RPO (Recovery Point Objective):
+- 테스트 환경: 0초
+- 예상 프로덕션: 10-30초 (네트워크 최적화 및 버퍼링 고려)
+
+[제한사항 및 개선점]
+
+1. 테스트 환경 제한사항:
+   - 단일 AZ 구성 (프로덕션: Multi-AZ 권장)
+   - 최소 인스턴스 크기 사용
+   - Public RDS 사용 (프로덕션: Private 권장)
+   - 최소 모니터링 구성
+
+2. 프로덕션 환경 고려사항:
+   - Multi-AZ 구성으로 가용성 향상
+   - CloudWatch 알람 및 자동화 설정
+   - VPC Peering/Transit Gateway 네트워크 최적화
+   - 백업 및 스냅샷 전략 수립
+   - 추가 보안 계층 (WAF, Shield 등)
+   - 실제 트래픽 부하 테스트 필요
+
+========================================

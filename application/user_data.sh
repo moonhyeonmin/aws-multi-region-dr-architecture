@@ -12,8 +12,8 @@ yum update -y
 # Install Python 3, pip, git, and wget
 yum install -y python3 python3-pip git wget
 
-# Install MySQL client (for testing)
-yum install -y mysql
+# Install MySQL client (for testing) - optional, ignore errors
+yum install -y mysql || yum install -y mariadb105 || echo "MySQL client not available, skipping..."
 
 # Create application directory
 mkdir -p /opt/app

@@ -32,9 +32,7 @@ fi
 
 cd "$(dirname "$0")"
 
-# Initialize metrics
-declare -A METRICS
-
+# Initialize metrics (using regular variables for macOS compatibility)
 echo "테스트 메트릭 수집 시작..."
 echo "=========================================="
 
@@ -46,8 +44,8 @@ SECONDARY_HEALTH_TIME=$(curl -s -o /dev/null -w "%{time_total}" http://$SECONDAR
 PRIMARY_HEALTH_TIME_MS=$(awk "BEGIN {printf \"%.0f\", $PRIMARY_HEALTH_TIME * 1000}")
 SECONDARY_HEALTH_TIME_MS=$(awk "BEGIN {printf \"%.0f\", $SECONDARY_HEALTH_TIME * 1000}")
 
-METRICS[primary_health_response_ms]=$PRIMARY_HEALTH_TIME_MS
-METRICS[secondary_health_response_ms]=$SECONDARY_HEALTH_TIME_MS
+METRIC_PRIMARY_HEALTH_MS=$PRIMARY_HEALTH_TIME_MS
+METRIC_SECONDARY_HEALTH_MS=$SECONDARY_HEALTH_TIME_MS
 
 echo "  Primary Health Check: ${PRIMARY_HEALTH_TIME_MS}ms"
 echo "  Secondary Health Check: ${SECONDARY_HEALTH_TIME_MS}ms"
@@ -87,15 +85,15 @@ if echo "$CREATE_RESPONSE" | grep -q '"status":"created"'; then
     
     if [ "$FOUND" = true ]; then
         REPLICATION_TIME_MS=$(awk "BEGIN {printf \"%.0f\", $REPLICATION_TIME * 1000}")
-        METRICS[replication_lag_ms]=$REPLICATION_TIME_MS
+        METRIC_REPLICATION_LAG_MS=$REPLICATION_TIME_MS
         echo "  ✓ 데이터 복제 완료: ${REPLICATION_TIME}s (${REPLICATION_TIME_MS}ms)"
     else
-        METRICS[replication_lag_ms]="TIMEOUT"
+        METRIC_REPLICATION_LAG_MS="TIMEOUT"
         echo "  ✗ 복제 타임아웃 (60초 이상)"
     fi
 else
     echo "  ✗ 데이터 생성 실패"
-    METRICS[replication_lag_ms]="ERROR"
+    METRIC_REPLICATION_LAG_MS="ERROR"
 fi
 
 # 3. RDS 복제 지연 확인
@@ -106,15 +104,15 @@ if [ -n "$REPLICATION_STATUS" ]; then
     IO_RUNNING=$(echo "$REPLICATION_STATUS" | grep -o '"slave_io_running":"[^"]*"' | cut -d'"' -f4 || echo "")
     SQL_RUNNING=$(echo "$REPLICATION_STATUS" | grep -o '"slave_sql_running":"[^"]*"' | cut -d'"' -f4 || echo "")
     
-    METRICS[rds_replication_lag_seconds]=$BEHIND_MASTER
-    METRICS[rds_io_running]=$IO_RUNNING
-    METRICS[rds_sql_running]=$SQL_RUNNING
+    METRIC_RDS_LAG_SECONDS=$BEHIND_MASTER
+    METRIC_RDS_IO_RUNNING=$IO_RUNNING
+    METRIC_RDS_SQL_RUNNING=$SQL_RUNNING
     
     echo "  RDS 복제 지연: ${BEHIND_MASTER}초"
     echo "  IO Running: ${IO_RUNNING}"
     echo "  SQL Running: ${SQL_RUNNING}"
 else
-    METRICS[rds_replication_lag_seconds]="N/A"
+    METRIC_RDS_LAG_SECONDS="N/A"
     echo "  ⚠ 복제 상태 확인 불가"
 fi
 
@@ -127,12 +125,12 @@ if [ -n "$DOMAIN" ]; then
     DNS_QUERY_TIME=$(awk "BEGIN {printf \"%.3f\", $DNS_END - $DNS_START}")
     DNS_QUERY_TIME_MS=$(awk "BEGIN {printf \"%.0f\", $DNS_QUERY_TIME * 1000}")
     
-    METRICS[dns_query_time_ms]=$DNS_QUERY_TIME_MS
-    METRICS[current_dns_target]=$DNS_RESULT
+    METRIC_DNS_QUERY_TIME_MS=$DNS_QUERY_TIME_MS
+    METRIC_DNS_TARGET=$DNS_RESULT
     echo "  DNS 쿼리 시간: ${DNS_QUERY_TIME_MS}ms"
     echo "  현재 DNS 타겟: ${DNS_RESULT}"
 else
-    METRICS[dns_query_time_ms]="N/A"
+    METRIC_DNS_QUERY_TIME_MS="N/A"
 fi
 
 # 5. API 응답 시간 측정
@@ -143,7 +141,7 @@ API_END=$(date +%s.%N)
 API_TIME=$(awk "BEGIN {printf \"%.3f\", $API_END - $API_START}")
 API_TIME_MS=$(awk "BEGIN {printf \"%.0f\", $API_TIME * 1000}")
 
-METRICS[api_response_time_ms]=$API_TIME_MS
+METRIC_API_RESPONSE_TIME_MS=$API_TIME_MS
 echo "  API 응답 시간: ${API_TIME_MS}ms"
 
 # Generate Report
@@ -165,21 +163,21 @@ AWS Multi-Region DR 테스트 리포트
 [성능 메트릭]
 
 1. Health Check 응답 시간
-   - Primary: ${METRICS[primary_health_response_ms]}ms
-   - Secondary: ${METRICS[secondary_health_response_ms]}ms
+   - Primary: ${METRIC_PRIMARY_HEALTH_MS}ms
+   - Secondary: ${METRIC_SECONDARY_HEALTH_MS}ms
 
 2. 데이터 복제 지연 시간
-   - 복제 완료 시간: ${METRICS[replication_lag_ms]}ms
-   - RDS 복제 지연: ${METRICS[rds_replication_lag_seconds]}초
-   - IO Thread: ${METRICS[rds_io_running]}
-   - SQL Thread: ${METRICS[rds_sql_running]}
+   - 복제 완료 시간: ${METRIC_REPLICATION_LAG_MS}ms
+   - RDS 복제 지연: ${METRIC_RDS_LAG_SECONDS}초
+   - IO Thread: ${METRIC_RDS_IO_RUNNING}
+   - SQL Thread: ${METRIC_RDS_SQL_RUNNING}
 
 3. DNS 성능
-   - DNS 쿼리 시간: ${METRICS[dns_query_time_ms]}ms
-   - 현재 타겟: ${METRICS[current_dns_target]}
+   - DNS 쿼리 시간: ${METRIC_DNS_QUERY_TIME_MS}ms
+   - 현재 타겟: ${METRIC_DNS_TARGET}
 
 4. API 성능
-   - API 응답 시간: ${METRICS[api_response_time_ms]}ms
+   - API 응답 시간: ${METRIC_API_RESPONSE_TIME_MS}ms
 
 [예상 RTO/RPO]
 
@@ -188,7 +186,7 @@ RTO (Recovery Time Objective):
 - 예상 프로덕션: 5-10분 (추가 검증 및 모니터링 고려)
 
 RPO (Recovery Point Objective):
-- 테스트 환경: ${METRICS[rds_replication_lag_seconds]}초
+- 테스트 환경: ${METRIC_RDS_LAG_SECONDS}초
 - 예상 프로덕션: 10-30초 (네트워크 최적화 및 버퍼링 고려)
 
 [제한사항 및 개선점]
@@ -223,21 +221,21 @@ cat > "$JSON_REPORT" << EOF
     "secondary_ec2_ip": "$SECONDARY_IP"
   },
   "metrics": {
-    "primary_health_response_ms": ${METRICS[primary_health_response_ms]},
-    "secondary_health_response_ms": ${METRICS[secondary_health_response_ms]},
-    "replication_lag_ms": "${METRICS[replication_lag_ms]}",
-    "rds_replication_lag_seconds": "${METRICS[rds_replication_lag_seconds]}",
-    "rds_io_running": "${METRICS[rds_io_running]}",
-    "rds_sql_running": "${METRICS[rds_sql_running]}",
-    "dns_query_time_ms": "${METRICS[dns_query_time_ms]}",
-    "api_response_time_ms": ${METRICS[api_response_time_ms]}
+    "primary_health_response_ms": ${METRIC_PRIMARY_HEALTH_MS},
+    "secondary_health_response_ms": ${METRIC_SECONDARY_HEALTH_MS},
+    "replication_lag_ms": "${METRIC_REPLICATION_LAG_MS}",
+    "rds_replication_lag_seconds": "${METRIC_RDS_LAG_SECONDS}",
+    "rds_io_running": "${METRIC_RDS_IO_RUNNING}",
+    "rds_sql_running": "${METRIC_RDS_SQL_RUNNING}",
+    "dns_query_time_ms": "${METRIC_DNS_QUERY_TIME_MS}",
+    "api_response_time_ms": ${METRIC_API_RESPONSE_TIME_MS}
   },
   "estimated_rto": {
     "test_environment": "2-3 minutes",
     "production_estimate": "5-10 minutes"
   },
   "estimated_rpo": {
-    "test_environment": "${METRICS[rds_replication_lag_seconds]} seconds",
+    "test_environment": "${METRIC_RDS_LAG_SECONDS} seconds",
     "production_estimate": "10-30 seconds"
   }
 }

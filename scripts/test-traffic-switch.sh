@@ -61,7 +61,25 @@ sleep 2
 
 # 2. DNS 조회 확인
 echo -e "${YELLOW}[2단계] DNS 조회 확인${NC}"
-DNS_RESULT=$(dig +short $DOMAIN @8.8.8.8 2>/dev/null | head -1 || echo "")
+# Route 53 네임서버 가져오기
+NAMESERVERS=$(terraform -chdir=../terraform output route53_name_servers 2>/dev/null || echo "")
+if [ -n "$NAMESERVERS" ]; then
+    # 첫 번째 네임서버 추출 (리스트 형식에서)
+    NS=$(echo "$NAMESERVERS" | grep -oE 'ns-[0-9]+\.awsdns-[0-9]+\.[^" ,\]}]+' | head -1)
+    if [ -z "$NS" ]; then
+        NS=$(echo "$NAMESERVERS" | tr -d '[]",' | grep -oE 'ns-[0-9]+\.[^ ]+' | head -1)
+    fi
+    if [ -n "$NS" ]; then
+        echo "Route 53 네임서버 사용: $NS"
+        DNS_RESULT=$(dig +short $DOMAIN @$NS 2>/dev/null | head -1 || echo "")
+    else
+        DNS_RESULT=""
+    fi
+else
+    # Fallback: Google DNS (private zone이면 작동하지 않음)
+    DNS_RESULT=$(dig +short $DOMAIN @8.8.8.8 2>/dev/null | head -1 || echo "")
+fi
+
 if [ -n "$DNS_RESULT" ]; then
     echo "현재 DNS 해석 결과: $DNS_RESULT"
     if [ "$DNS_RESULT" = "$PRIMARY_IP" ]; then
@@ -72,7 +90,9 @@ if [ -n "$DNS_RESULT" ]; then
         echo -e "  ${RED}✗ 예상과 다른 IP: $DNS_RESULT${NC}"
     fi
 else
-    echo -e "  ${YELLOW}⚠ DNS 해석 불가 (Route 53 설정 확인 필요)${NC}"
+    echo -e "  ${YELLOW}⚠ DNS 해석 불가${NC}"
+    echo "  Route 53 설정 확인: ./scripts/check-route53.sh 실행"
+    echo "  또는 로컬 /etc/hosts 사용: echo '$PRIMARY_IP $DOMAIN' | sudo tee -a /etc/hosts"
 fi
 echo ""
 sleep 3
@@ -105,8 +125,17 @@ MAX_WAIT=180  # 3분
 ELAPSED=0
 INTERVAL=10
 
+# 네임서버 재확인
+if [ -z "$NS" ]; then
+    NS=$(echo "$NAMESERVERS" | grep -o 'ns-[0-9]*\.[^"]*' | head -1)
+fi
+
 while [ $ELAPSED -lt $MAX_WAIT ]; do
-    DNS_RESULT=$(dig +short $DOMAIN @8.8.8.8 2>/dev/null | head -1 || echo "")
+    if [ -n "$NS" ]; then
+        DNS_RESULT=$(dig +short $DOMAIN @$NS 2>/dev/null | head -1 || echo "")
+    else
+        DNS_RESULT=$(dig +short $DOMAIN @8.8.8.8 2>/dev/null | head -1 || echo "")
+    fi
     
     if [ -n "$DNS_RESULT" ]; then
         if [ "$DNS_RESULT" = "$SECONDARY_IP" ]; then
@@ -127,7 +156,11 @@ fi
 
 # 5. 최종 확인
 echo -e "\n${YELLOW}[5단계] 최종 확인${NC}"
-FINAL_DNS=$(dig +short $DOMAIN @8.8.8.8 2>/dev/null | head -1 || echo "")
+if [ -n "$NS" ]; then
+    FINAL_DNS=$(dig +short $DOMAIN @$NS 2>/dev/null | head -1 || echo "")
+else
+    FINAL_DNS=$(dig +short $DOMAIN @8.8.8.8 2>/dev/null | head -1 || echo "")
+fi
 if [ "$FINAL_DNS" = "$SECONDARY_IP" ]; then
     echo -e "${GREEN}✓ 테스트 성공: 트래픽이 정상적으로 Secondary로 전환되었습니다.${NC}"
     echo ""
