@@ -114,11 +114,7 @@ def health():
 @app.route('/api/data', methods=['GET'])
 def get_data():
     """Get all data from database"""
-    if IS_REPLICA:
-        return jsonify({
-            'error': 'Read replica - write operations not allowed'
-        }), 403
-    
+    # Read Replica는 읽기는 가능 (쓰기만 막음)
     connection = get_db_connection()
     if not connection:
         return jsonify({'error': 'Database connection failed'}), 500
