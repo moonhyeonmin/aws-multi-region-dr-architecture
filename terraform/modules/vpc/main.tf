@@ -74,7 +74,21 @@ resource "aws_subnet" "private" {
   tags = merge(
     var.tags,
     {
-      Name = "${var.name_prefix}-private-subnet"
+      Name = "${var.name_prefix}-private-subnet-${substr(var.availability_zone, -1, 1)}"
+    }
+  )
+}
+
+# RDS는 최소 2개 AZ가 필요하므로 두 번째 private subnet 생성
+resource "aws_subnet" "private_secondary" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(var.vpc_cidr, 8, 3) # 첫 번째 private subnet 다음 IP 대역
+  availability_zone = var.availability_zone_secondary
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.name_prefix}-private-subnet-${substr(var.availability_zone_secondary, -1, 1)}"
     }
   )
 }
@@ -92,6 +106,11 @@ resource "aws_route_table" "private" {
 
 resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private_secondary" {
+  subnet_id      = aws_subnet.private_secondary.id
   route_table_id = aws_route_table.private.id
 }
 

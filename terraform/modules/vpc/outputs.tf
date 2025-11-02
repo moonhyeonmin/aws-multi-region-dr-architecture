@@ -9,8 +9,13 @@ output "public_subnet_id" {
 }
 
 output "private_subnet_id" {
-  description = "Private subnet ID"
+  description = "Primary private subnet ID"
   value       = aws_subnet.private.id
+}
+
+output "private_subnet_ids" {
+  description = "Private subnet IDs (for RDS subnet group)"
+  value       = [aws_subnet.private.id, aws_subnet.private_secondary.id]
 }
 
 output "vpc_cidr" {

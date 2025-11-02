@@ -19,7 +19,12 @@ variable "private_subnet_cidr" {
 }
 
 variable "availability_zone" {
-  description = "Availability zone"
+  description = "Primary availability zone"
+  type        = string
+}
+
+variable "availability_zone_secondary" {
+  description = "Secondary availability zone (required for RDS)"
   type        = string
 }
 

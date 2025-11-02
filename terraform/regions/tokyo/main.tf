@@ -33,11 +33,12 @@ module "vpc" {
     aws = aws.secondary
   }
 
-  name_prefix         = local.name_prefix
-  vpc_cidr            = "10.1.0.0/16"
-  public_subnet_cidr  = "10.1.1.0/24"
-  private_subnet_cidr = "10.1.2.0/24"
-  availability_zone   = data.aws_availability_zones.available.names[0]
+  name_prefix                = local.name_prefix
+  vpc_cidr                   = "10.1.0.0/16"
+  public_subnet_cidr         = "10.1.1.0/24"
+  private_subnet_cidr        = "10.1.2.0/24"
+  availability_zone          = data.aws_availability_zones.available.names[0]
+  availability_zone_secondary = data.aws_availability_zones.available.names[1]
 
   tags = {
     Region = "Tokyo"
@@ -90,7 +91,7 @@ module "rds" {
 
   name_prefix                = local.name_prefix
   vpc_id                     = module.vpc.vpc_id
-  subnet_ids                 = [module.vpc.private_subnet_id]
+  subnet_ids                 = module.vpc.private_subnet_ids
   allowed_security_group_ids = [module.ec2.web_security_group_id]
   is_replica                  = true
   replicate_source_db         = var.primary_rds_identifier
