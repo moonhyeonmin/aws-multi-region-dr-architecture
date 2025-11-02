@@ -97,6 +97,8 @@ module "rds" {
   instance_class              = var.rds_instance_class
   publicly_accessible         = var.rds_publicly_accessible
   # Read Replica는 Primary의 자격 증명을 상속받으므로 db_username과 db_password 불필요
+  db_username                 = "" # Read Replica에서는 사용하지 않음
+  db_password                 = "" # Read Replica에서는 사용하지 않음
 
   tags = {
     Region = "Tokyo"
