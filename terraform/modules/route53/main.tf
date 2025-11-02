@@ -8,7 +8,7 @@ terraform {
 }
 
 resource "aws_route53_health_check" "primary" {
-  fqdn              = var.primary_endpoint
+  ip_address        = var.primary_ip
   port              = 80
   type              = "HTTP"
   resource_path     = "/health"
@@ -24,7 +24,7 @@ resource "aws_route53_health_check" "primary" {
 }
 
 resource "aws_route53_health_check" "secondary" {
-  fqdn              = var.secondary_endpoint
+  ip_address        = var.secondary_ip
   port              = 80
   type              = "HTTP"
   resource_path     = "/health"

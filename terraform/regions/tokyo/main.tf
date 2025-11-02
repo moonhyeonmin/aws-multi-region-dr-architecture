@@ -51,7 +51,7 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  user_data = templatefile("${path.module}/../../application/user_data.sh", {
+  user_data = templatefile("${path.root}/../application/user_data.sh", {
     db_host     = module.rds.db_address
     db_port     = tostring(module.rds.db_port)
     db_name     = var.db_name
@@ -96,6 +96,7 @@ module "rds" {
   replicate_source_db         = var.primary_rds_identifier
   instance_class              = var.rds_instance_class
   publicly_accessible         = var.rds_publicly_accessible
+  # Read Replica는 Primary의 자격 증명을 상속받으므로 db_username과 db_password 불필요
 
   tags = {
     Region = "Tokyo"

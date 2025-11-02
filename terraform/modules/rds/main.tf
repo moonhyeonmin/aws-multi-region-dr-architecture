@@ -70,7 +70,7 @@ resource "aws_db_instance" "primary" {
   backup_window           = "03:00-04:00"
   maintenance_window      = "mon:04:00-mon:05:00"
 
-  enabled_cloudwatch_logs_exports = ["error", "general", "slow_query"]
+  enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"]
 
   tags = merge(
     var.tags,
@@ -96,7 +96,7 @@ resource "aws_db_instance" "replica" {
   backup_window           = "03:00-04:00"
   maintenance_window      = "mon:04:00-mon:05:00"
 
-  enabled_cloudwatch_logs_exports = ["error", "general", "slow_query"]
+  enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"]
 
   tags = merge(
     var.tags,

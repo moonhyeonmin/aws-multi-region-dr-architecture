@@ -51,7 +51,7 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  user_data = templatefile("${path.module}/../../application/user_data.sh", {
+  user_data = templatefile("${path.root}/../application/user_data.sh", {
     db_host     = module.rds.db_address
     db_port     = tostring(module.rds.db_port)
     db_name     = var.db_name

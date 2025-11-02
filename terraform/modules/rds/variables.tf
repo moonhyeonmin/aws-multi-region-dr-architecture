@@ -55,14 +55,16 @@ variable "db_name" {
 }
 
 variable "db_username" {
-  description = "Database master username"
+  description = "Database master username (required for primary, not for replica)"
   type        = string
+  default     = ""
 }
 
 variable "db_password" {
-  description = "Database master password"
+  description = "Database master password (required for primary, not for replica)"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "publicly_accessible" {
