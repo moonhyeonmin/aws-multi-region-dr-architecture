@@ -1,0 +1,106 @@
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+      configuration_aliases = [aws.secondary]
+    }
+  }
+}
+
+provider "aws" {
+  alias  = "secondary"
+  region = "ap-northeast-1" # Tokyo
+
+  default_tags {
+    tags = {
+      Project     = "DR-Test"
+      Environment = "Test"
+      ManagedBy   = "Terraform"
+    }
+  }
+}
+
+locals {
+  name_prefix = "tokyo-dr"
+}
+
+module "vpc" {
+  source = "../../modules/vpc"
+
+  providers = {
+    aws = aws.secondary
+  }
+
+  name_prefix         = local.name_prefix
+  vpc_cidr            = "10.1.0.0/16"
+  public_subnet_cidr  = "10.1.1.0/24"
+  private_subnet_cidr = "10.1.2.0/24"
+  availability_zone   = data.aws_availability_zones.available.names[0]
+
+  tags = {
+    Region = "Tokyo"
+    Role   = "DR"
+  }
+}
+
+data "aws_availability_zones" "available" {
+  provider = aws.secondary
+  state    = "available"
+}
+
+data "template_file" "user_data" {
+  template = file("${path.module}/../../application/user_data.sh")
+  vars = {
+    db_host     = module.rds.db_address
+    db_port     = tostring(module.rds.db_port)
+    db_name     = var.db_name
+    db_user     = var.db_username
+    db_password = var.db_password
+    region      = "tokyo"
+    is_replica  = "true"
+  }
+}
+
+module "ec2" {
+  source = "../../modules/ec2"
+
+  providers = {
+    aws = aws.secondary
+  }
+
+  name_prefix      = local.name_prefix
+  vpc_id           = module.vpc.vpc_id
+  public_subnet_id = module.vpc.public_subnet_id
+  instance_type    = var.instance_type
+  user_data        = base64encode(data.template_file.user_data.rendered)
+
+  tags = {
+    Region = "Tokyo"
+    Role   = "DR"
+  }
+}
+
+module "rds" {
+  source = "../../modules/rds"
+
+  providers = {
+    aws = aws.secondary
+  }
+
+  name_prefix                = local.name_prefix
+  vpc_id                     = module.vpc.vpc_id
+  subnet_ids                 = [module.vpc.private_subnet_id]
+  allowed_security_group_ids = [module.ec2.web_security_group_id]
+  is_replica                  = true
+  replicate_source_db         = var.primary_rds_identifier
+  instance_class              = var.rds_instance_class
+  publicly_accessible         = var.rds_publicly_accessible
+
+  tags = {
+    Region = "Tokyo"
+    Role   = "DR"
+  }
+}
+
