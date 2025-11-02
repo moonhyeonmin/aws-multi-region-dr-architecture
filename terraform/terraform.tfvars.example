@@ -2,7 +2,7 @@
 
 db_name     = "testdb"
 db_username = "admin"
-db_password = "YourSecurePassword123!"  # Change this!
+db_password = "test123"
 
 domain_name = "dr-test.local"
 

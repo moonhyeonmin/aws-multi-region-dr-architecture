@@ -50,9 +50,8 @@ data "aws_availability_zones" "available" {
   state    = "available"
 }
 
-data "template_file" "user_data" {
-  template = file("${path.module}/../../application/user_data.sh")
-  vars = {
+locals {
+  user_data = templatefile("${path.module}/../../application/user_data.sh", {
     db_host     = module.rds.db_address
     db_port     = tostring(module.rds.db_port)
     db_name     = var.db_name
@@ -60,7 +59,7 @@ data "template_file" "user_data" {
     db_password = var.db_password
     region      = "tokyo"
     is_replica  = "true"
-  }
+  })
 }
 
 module "ec2" {
@@ -74,7 +73,7 @@ module "ec2" {
   vpc_id           = module.vpc.vpc_id
   public_subnet_id = module.vpc.public_subnet_id
   instance_type    = var.instance_type
-  user_data        = base64encode(data.template_file.user_data.rendered)
+  user_data        = base64encode(local.user_data)
 
   tags = {
     Region = "Tokyo"
